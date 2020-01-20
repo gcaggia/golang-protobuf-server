@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/gcaggia/golang-protobuf-server/protodef"
-	"github.com/golang/protobuf/proto"
+	"fmt"
+	"github.com/gorilla/mux"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,17 +15,16 @@ func init() {
 	log.Println("App is running on port 18000")
 }
 
-type UserJson struct {
-	Id     int64  `json:"id"`
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Active bool   `json:"active"`
+type User struct {
+	Id       int64  `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Active   bool   `json:"active"`
+	ProtoBuf string `json:"protobuf"`
 }
 
-type UserData struct {
-	User *protodef.User
-	ProtoBuf string
-}
+// global users variable, act as in memory database
+var Users []User
 
 func byteToString(b []byte) string {
 	result := ""
@@ -35,58 +34,85 @@ func byteToString(b []byte) string {
 	return "[" + strings.TrimSpace(result) + "]"
 }
 
-func main() {
+func home(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Welcome to the protobuf server API!")
+	fmt.Println("Endpoint Hit: /")
+}
 
-	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		log.Println("Incoming request on '/'")
-		writer.Write([]byte("Received!"))
-	})
+func fetchUsers(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint Hit: GET /users")
+	json.NewEncoder(w).Encode(Users)
+}
 
-	http.HandleFunc("/user/healthcheck", func(writer http.ResponseWriter, request *http.Request) {
-		log.Println("Incoming request on '/user/healthcheck'")
-
-		user := &protodef.User{
-			Id: 1,
-			Name: "Eric Freime",
-			Email: "efreime@gmail.com",
-			Active: true,
-		}
-
-		data, err := proto.Marshal(user)
-		if err != nil {
-			log.Fatal	("marshal call error: ", err)
-		}
-		// log raw protobuf object
-		log.Println("protobuf: " + byteToString(data))
-		userData := UserData{
-			User: user,
-			ProtoBuf: byteToString(data),
-		}
-		// writer.Write([]byte("Protobuf generated for id " + strconv.FormatInt(int64(user.Id), 10)))
-		writer.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(writer).Encode(userData)
-	})
-
-	http.HandleFunc("/user", func(writer http.ResponseWriter, request *http.Request) {
-		if request.Method != "POST" {
-			http.NotFound(writer, request)
+func getUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	key, _ := strconv.Atoi(vars["id"])
+	fmt.Println("Endpoint Hit: GET /users/" + string(key))
+	for _, user := range Users {
+		if user.Id == int64(key) {
+			json.NewEncoder(w).Encode(user)
 			return
 		}
+	}
+	json.NewEncoder(w).Encode("{}")
+}
 
-		var userJson UserJson
+func postUser(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint Hit: POST /users")
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var user User
+	json.Unmarshal(reqBody, &user)
+	// update our global users array to include new user
+	Users = append(Users, user)
+	// return user newly created
+	json.NewEncoder(w).Encode(user)
+}
 
-		reqBody, err := ioutil.ReadAll(request.Body)
-		err = json.Unmarshal(reqBody, &userJson)
+func editUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	key, _ := strconv.Atoi(vars["id"])
+	fmt.Println("Endpoint Hit: PUT /users/" + vars["id"])
 
-		if err != nil {
-			log.Fatal(err)
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var newUser User
+	json.Unmarshal(reqBody, &newUser)
+
+	for index, user := range Users {
+		if user.Id == int64(key) {
+			Users[index].Id     = newUser.Id
+			Users[index].Name   = newUser.Name
+			Users[index].Email  = newUser.Email
+			Users[index].Active = newUser.Active
+			json.NewEncoder(w).Encode(newUser)
 		}
+	}
+}
 
-		log.Println("/user POST HTTP request")
-		json.NewEncoder(writer).Encode(userJson)
-		//d := json.NewDecoder(request.Body)
-	})
+func deleteUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	key, _ := strconv.Atoi(vars["id"])
+	fmt.Println("Endpoint Hit: DELETE /users/" +  vars["id"])
 
+	for index, user := range Users {
+		if user.Id == int64(key) {
+			Users = append(Users[:index], Users[index+1:]...)
+			json.NewEncoder(w).Encode(user)
+		}
+	}
+}
 
-	http.ListenAndServe("127.0.0.1:18000", nil)
+func handleRequests() {
+	router := mux.NewRouter().StrictSlash(true)
+	router.HandleFunc("/", home)
+	router.HandleFunc("/users",      fetchUsers).Methods("GET")
+	router.HandleFunc("/users/{id}", getUser   ).Methods("GET")
+	router.HandleFunc("/users",      postUser  ).Methods("POST")
+	router.HandleFunc("/users/{id}", editUser  ).Methods("PUT")
+	router.HandleFunc("/users/{id}", deleteUser).Methods("DELETE")
+	log.Fatal(http.ListenAndServe("127.0.0.1:18000", router))
+}
+
+func main() {
+	fmt.Println("Rest API v1.0 - protobuf server")
+	handleRequests()
 }
