@@ -38,9 +38,29 @@ func home(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: /")
 }
 
-func getUsers(w http.ResponseWriter, r *http.Request) {
+func fetchUsers(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: GET /users")
 	json.NewEncoder(w).Encode(Users)
+}
+
+func getUser(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint Hit: GET /user/:id")
+	fmt.Fprintf(w, "GET /users/:id")
+}
+
+func postUser(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint Hit: POST /user")
+	fmt.Fprintf(w, "POST /users")
+}
+
+func editUser(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint Hit: PUT /user/:id")
+	fmt.Fprintf(w, "PUT /users/:id")
+}
+
+func deleteUser(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint Hit: DELETE /user/:id")
+	fmt.Fprintf(w, "DELETE /users/:id")
 }
 
 func handleRequests() {
