@@ -45,8 +45,14 @@ func fetchUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: GET /users/:id")
-	fmt.Fprintf(w, "GET /users/:id")
+	fmt.Println("Endpoint Hit: GET /users/{id}")
+	vars := mux.Vars(r)
+	key, _ := strconv.ParseInt(vars["id"], 10, 0)
+	for _, user := range Users {
+		if user.Id == key {
+			json.NewEncoder(w).Encode(user)
+		}
+	}
 }
 
 func postUser(w http.ResponseWriter, r *http.Request) {
@@ -61,12 +67,12 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func editUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: PUT /users/:id")
+	fmt.Println("Endpoint Hit: PUT /users/{id}")
 	fmt.Fprintf(w, "PUT /users/:id")
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: DELETE /users/:id")
+	fmt.Println("Endpoint Hit: DELETE /users/{id}")
 	fmt.Fprintf(w, "DELETE /users/:id")
 }
 
