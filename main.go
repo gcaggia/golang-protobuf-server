@@ -44,29 +44,33 @@ func fetchUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: GET /user/:id")
+	fmt.Println("Endpoint Hit: GET /users/:id")
 	fmt.Fprintf(w, "GET /users/:id")
 }
 
 func postUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: POST /user")
+	fmt.Println("Endpoint Hit: POST /users")
 	fmt.Fprintf(w, "POST /users")
 }
 
 func editUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: PUT /user/:id")
+	fmt.Println("Endpoint Hit: PUT /users/:id")
 	fmt.Fprintf(w, "PUT /users/:id")
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: DELETE /user/:id")
+	fmt.Println("Endpoint Hit: DELETE /users/:id")
 	fmt.Fprintf(w, "DELETE /users/:id")
 }
 
 func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", home)
-	router.HandleFunc("/users", home)
+	router.HandleFunc("/users",      fetchUsers).Methods("GET")
+	router.HandleFunc("/users/{id}", getUser   ).Methods("GET")
+	router.HandleFunc("/users",      postUser  ).Methods("POST")
+	router.HandleFunc("/users/{id}", editUser  ).Methods("PUT")
+	router.HandleFunc("/users/{id}", deleteUser).Methods("DELETE")
 	log.Fatal(http.ListenAndServe("127.0.0.1:18000", router))
 }
 
