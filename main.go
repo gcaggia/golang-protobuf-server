@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -50,7 +51,13 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 
 func postUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: POST /users")
-	fmt.Fprintf(w, "POST /users")
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var user User
+	json.Unmarshal(reqBody, &user)
+	// update our global users array to include new user
+	Users = append(Users, user)
+	// return user newly created
+	json.NewEncoder(w).Encode(user)
 }
 
 func editUser(w http.ResponseWriter, r *http.Request) {
